@@ -1,19 +1,35 @@
 {-# LANGUAGE MagicHash, UnboxedTuples #-}
--- | A globally unique fresh variable supply with manually managed local pools.
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Control.Concurrent.Supply
+-- Copyright   :  (C) 2011 Edward Kmett,
+-- License     :  BSD-style (see the file LICENSE)
+--
+-- Maintainer  :  Edward Kmett <ekmett@gmail.com>
+-- Stability   :  provisional
+-- Portability :  portable
+--
+-- A globally unique fresh identifier supply with local pooling and replay
+-- support.
+----------------------------------------------------------------------------
 module Control.Concurrent.Supply
   ( Supply
+  -- * Variables
   , newSupply
   , freshId
   , splitSupply
+  -- * Unboxed API
   , freshId#
   , splitSupply#
   ) where
 
 import Data.Hashable
 import Data.IORef
-import Data.Functor
+import Data.Functor ((<$>))
 import Data.Monoid
 import GHC.IO (unsafeDupablePerformIO)
+import GHC.Types (Int(..))
+import GHC.Prim (Int#)
 
 infixr 5 :-
 data Stream a = a :- Stream a
@@ -77,28 +93,31 @@ instance Hashable Supply where
 blockSupply :: Block -> Supply
 blockSupply (Block i bs) = Supply i (i + blockSize - 1) (extract bs)
 
--- Grab a new supply, all supplies generate disjoint sets of variables
--- when used in a linear fashion, but you can reuse a supply to obtain
--- the same results during replay.
+-- | Grab a new supply. Any two supplies obtained with newSupply are guaranteed to return
+-- disjoint sets of identifiers. Replaying the same sequence of operations on the same
+-- Supply will yield the same results.
 newSupply :: IO Supply
 newSupply = blockSupply <$> newBlock
 
+-- | Obtain a fresh Id from a Supply.
 freshId :: Supply -> (Int, Supply)
 freshId s = case freshId# s of
-  (# i, s' #) -> (i, s')
+  (# i, s' #) -> (I# i, s')
 
+-- | Split a supply into two supplies that will return disjoint identifiers
 splitSupply :: Supply -> (Supply, Supply)
 splitSupply s = case splitSupply# s of
   (# l, r #) -> (l, r)
 
--- | Obtain a globally unique variable from the supply.
-freshId# :: Supply -> (# Int, Supply #)
-freshId# (Supply i j b)
-  | i /= j = (# i, Supply (i + 1) j b #)
+-- | An unboxed version of freshId
+freshId# :: Supply -> (# Int#, Supply #)
+freshId# (Supply i@(I# i#) j b)
+  | i /= j = (# i#, Supply (i + 1) j b #)
   | otherwise = case b of
-    Block k b' -> (# i, Supply k (k + blockSize - 1) (extract b') #)
+    Block k b' -> (# i#, Supply k (k + blockSize - 1) (extract b') #)
+{-# INLINE freshId# #-}
 
--- | Split a supply into two supplies that provide disjoint ids
+-- | An unboxed version of splitSupply
 splitSupply# :: Supply -> (# Supply, Supply #)
 splitSupply# (Supply i k b) = case splitBlock# b of
     (# bl, br #)
@@ -109,3 +128,4 @@ splitSupply# (Supply i k b) = case splitBlock# b of
       , y <- x + div blockSize 2
       , z <- x + blockSize - 1 ->
         (# Supply x (y - 1) l, Supply y z r #)
+{-# INLINE splitSupply# #-}
