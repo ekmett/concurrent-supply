@@ -1,4 +1,4 @@
-{-# LANGUAGE MagicHash, UnboxedTuples #-}
+{-# LANGUAGE MagicHash, UnboxedTuples, Trustworthy #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Concurrent.Supply
