@@ -1,6 +1,6 @@
 name:          concurrent-supply
 category:      Concurrency, Parallelism
-version:       0.1.1
+version:       0.1.1.1
 license:       BSD3
 cabal-version: >= 1.10
 license-file:  LICENSE
@@ -8,10 +8,12 @@ author:        Edward A. Kmett
 maintainer:    Edward A. Kmett <ekmett@gmail.com>
 stability:     experimental
 homepage:      http://github.com/ekmett/concurrent-supply/
+bug-reports:   http://github.com/ekmett/concurrent-supply/
 copyright:     Copyright (C) 2011 Edward A. Kmett
 synopsis:      A fast concurrent unique identifier supply with a pure API
 description:   A fast concurrent unique identifier supply with a pure API
 build-type:    Simple
+extra-source-files: .travis.yml
 
 source-repository head
   type: git
