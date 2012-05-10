@@ -8,7 +8,7 @@ author:        Edward A. Kmett
 maintainer:    Edward A. Kmett <ekmett@gmail.com>
 stability:     experimental
 homepage:      http://github.com/ekmett/concurrent-supply/
-bug-reports:   http://github.com/ekmett/concurrent-supply/
+bug-reports:   http://github.com/ekmett/concurrent-supply/issues
 copyright:     Copyright (C) 2011 Edward A. Kmett
 synopsis:      A fast concurrent unique identifier supply with a pure API
 description:   A fast concurrent unique identifier supply with a pure API
