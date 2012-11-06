@@ -69,6 +69,7 @@ minSplitSupplySize = 32 -- based on sqrt blockSize
 
 blockCounter :: IORef Int
 blockCounter = unsafeDupablePerformIO $ newIORef 0
+{-# NOINLINE blockCounter #-}
 
 gen :: () -> Block
 gen _ = Block (unsafeDupablePerformIO $ atomicModifyIORef blockCounter $ \ i -> let i' = i + blockSize in (i', i))
@@ -92,22 +93,26 @@ instance Hashable Supply where
 
 blockSupply :: Block -> Supply
 blockSupply (Block i bs) = Supply i (i + blockSize - 1) (extract bs)
+{-# INLINE blockSupply #-}
 
 -- | Grab a new supply. Any two supplies obtained with newSupply are guaranteed to return
 -- disjoint sets of identifiers. Replaying the same sequence of operations on the same
 -- Supply will yield the same results.
 newSupply :: IO Supply
 newSupply = blockSupply <$> newBlock
+{-# INLINE newSupply #-}
 
 -- | Obtain a fresh Id from a Supply.
 freshId :: Supply -> (Int, Supply)
 freshId s = case freshId# s of
   (# i, s' #) -> (I# i, s')
+{-# INLINE freshId #-}
 
 -- | Split a supply into two supplies that will return disjoint identifiers
 splitSupply :: Supply -> (Supply, Supply)
 splitSupply s = case splitSupply# s of
   (# l, r #) -> (l, r)
+{-# INLINE splitSupply #-}
 
 -- | An unboxed version of freshId
 freshId# :: Supply -> (# Int#, Supply #)
