@@ -71,9 +71,12 @@ blockCounter :: IORef Int
 blockCounter = unsafeDupablePerformIO $ newIORef 0
 {-# NOINLINE blockCounter #-}
 
+modifyBlock :: () -> IO Int
+modifyBlock _ = atomicModifyIORef blockCounter $ \ i -> let i' = i + blockSize in i' `seq` (i', i)
+{-# NOINLINE modifyBlock #-}
+
 gen :: () -> Block
-gen _ = Block (unsafeDupablePerformIO $ atomicModifyIORef blockCounter $ \ i -> let i' = i + blockSize in (i', i))
-              (gen <$> units)
+gen x = Block (unsafeDupablePerformIO (modifyBlock x)) (gen <$> units)
 {-# NOINLINE gen #-}
 
 newBlock :: IO Block
