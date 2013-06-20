@@ -12,8 +12,20 @@
 -- Stability   :  provisional
 -- Portability :  portable
 --
--- A globally unique fresh identifier supply with local pooling and replay
+-- A fast unique identifier supply with local pooling and replay
 -- support.
+--
+-- One often has a desire to generate a bunch of integer identifiers within
+-- a single process that are unique within that process. You could use
+-- UUIDs, but they can be expensive to generate; you don't want to have
+-- your threads contending for a single external counter if the identifier
+-- is not going to be used outside the process.
+--
+-- @concurrent-supply@ builds a tree-like structure which can be split; you
+-- can make smaller unique supplies and then you allocate from your supplies
+-- locally. Internally it pulls from a unique supply one block at a time as
+-- you walk into parts of the tree that haven't been explored.
+--
 ----------------------------------------------------------------------------
 module Control.Concurrent.Supply
   ( Supply
