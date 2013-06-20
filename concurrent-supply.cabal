@@ -13,7 +13,7 @@ copyright:     Copyright (C) 2011 Edward A. Kmett
 synopsis:      A fast concurrent unique identifier supply with a pure API
 description:   A fast concurrent unique identifier supply with a pure API
 build-type:    Simple
-extra-source-files: .travis.yml
+extra-source-files: .travis.yml CHANGELOG.markdown
 
 source-repository head
   type: git
