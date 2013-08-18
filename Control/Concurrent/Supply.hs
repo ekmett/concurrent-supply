@@ -42,7 +42,7 @@ import Data.Hashable
 import Data.IORef
 import Data.Functor ((<$>))
 import Data.Monoid
-import GHC.IO (unsafeDupablePerformIO)
+import GHC.IO (unsafeDupablePerformIO, unsafePerformIO)
 import GHC.Types (Int(..))
 import GHC.Prim (Int#)
 
@@ -57,6 +57,7 @@ extract (a :- _) = a
 
 units :: Stream ()
 units = () :- units
+{-# NOINLINE units #-}
 
 data Block = Block Int !(Stream Block)
 
@@ -83,19 +84,19 @@ minSplitSupplySize = 32 -- based on sqrt blockSize
 {-# INLINE minSplitSupplySize #-}
 
 blockCounter :: IORef Int
-blockCounter = unsafeDupablePerformIO $ newIORef 0
+blockCounter = unsafePerformIO (newIORef 0)
 {-# NOINLINE blockCounter #-}
 
-modifyBlock :: () -> IO Int
+modifyBlock :: a -> IO Int
 modifyBlock _ = atomicModifyIORef blockCounter $ \ i -> let i' = i + blockSize in i' `seq` (i', i)
 {-# NOINLINE modifyBlock #-}
 
-gen :: () -> Block
+gen :: a -> Block
 gen x = Block (unsafeDupablePerformIO (modifyBlock x)) (gen <$> units)
 {-# NOINLINE gen #-}
 
 newBlock :: IO Block
-newBlock = return $ gen ()
+newBlock = return $! gen ()
 {-# NOINLINE newBlock #-}
 
 splitBlock# :: Block -> (# Block, Block #)
@@ -136,8 +137,7 @@ splitSupply s = case splitSupply# s of
 freshId# :: Supply -> (# Int#, Supply #)
 freshId# (Supply i@(I# i#) j b)
   | i /= j = (# i#, Supply (i + 1) j b #)
-  | otherwise = case b of
-    Block k b' -> (# i#, Supply k (k + blockSize - 1) (extract b') #)
+  | otherwise = (# i#, blockSupply b #)
 {-# INLINE freshId# #-}
 
 -- | An unboxed version of splitSupply
