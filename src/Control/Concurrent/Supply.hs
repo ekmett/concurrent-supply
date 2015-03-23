@@ -41,8 +41,10 @@ module Control.Concurrent.Supply
 
 import Data.Hashable
 import Data.IORef
+#if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ < 710
 import Data.Functor ((<$>))
 import Data.Monoid
+#endif
 import GHC.IO (unsafeDupablePerformIO, unsafePerformIO)
 import GHC.Types (Int(..))
 import GHC.Prim (Int#)
