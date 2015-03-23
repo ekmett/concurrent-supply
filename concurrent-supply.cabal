@@ -1,6 +1,6 @@
 name:          concurrent-supply
 category:      Concurrency, Parallelism
-version:       0.1.7
+version:       0.1.7.1
 license:       BSD3
 cabal-version: >= 1.10
 license-file:  LICENSE
