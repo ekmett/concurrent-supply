@@ -1,4 +1,4 @@
-{-# LANGUAGE MagicHash, UnboxedTuples, CPP #-}
+{-# LANGUAGE MagicHash, UnboxedTuples, CPP, GeneralizedNewtypeDeriving #-}
 #if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 702
 {-# LANGUAGE Trustworthy #-}
 #endif
@@ -37,14 +37,27 @@ module Control.Concurrent.Supply
   -- * Unboxed API
   , freshId#
   , splitSupply#
+  -- * Monadic API
+  , SupplyT
+  , forkSupply
+  , drawId
+  , runSupply
+  , evalSupply
+  , runSupplyT
+  , evalSupplyT
   ) where
 
 import Data.Hashable
 import Data.IORef
 #if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ < 710
 import Data.Functor ((<$>))
+import Data.Functor.Identity (Identity)
 import Data.Monoid
 #endif
+import Control.Applicative (Applicative)
+import Control.Monad.IO.Class (MonadIO)
+import Control.Monad.Trans.Class (MonadTrans)
+import Control.Monad.Trans.State.Strict
 import GHC.IO (unsafeDupablePerformIO, unsafePerformIO)
 import GHC.Types (Int(..))
 import GHC.Prim (Int#)
@@ -155,3 +168,30 @@ splitSupply# (Supply i k b) = case splitBlock# b of
       , z <- x + blockSize - 1 ->
         (# Supply x (y - 1) l, Supply y z r #)
 {-# INLINE splitSupply# #-}
+
+newtype SupplyT m a = SupplyT (StateT Supply m a)
+  deriving (Functor, Applicative, Monad, MonadIO, MonadTrans)
+
+-- | A monadic version of splitSupply
+forkSupply :: Monad m => SupplyT m Supply
+forkSupply = SupplyT $ state splitSupply
+
+-- | A monadic version of freshId
+drawId :: Monad m => SupplyT m Int
+drawId = SupplyT $ state freshId
+
+-- | Unwrap a supply monad computation as a function
+runSupply :: SupplyT Identity a -> Supply -> (a, Supply)
+runSupply (SupplyT m) = runState m
+
+-- | Evaluate a computation with the given initial supply and return the final value, discarding the final supply
+evalSupply :: SupplyT Identity a -> Supply -> a
+evalSupply (SupplyT m) = evalState m
+
+-- | Unwrap a supply monad computation as a function
+runSupplyT :: SupplyT m a -> Supply -> m (a, Supply)
+runSupplyT (SupplyT m) = runStateT m
+
+-- | Evaluate a computation with the given initial supply and return the final value, discarding the final supply
+evalSupplyT :: Monad m => SupplyT m a -> Supply -> m a
+evalSupplyT (SupplyT m) = evalStateT m
