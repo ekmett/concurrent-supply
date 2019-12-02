@@ -34,6 +34,7 @@ module Control.Concurrent.Supply
   , newSupply
   , freshId
   , splitSupply
+  , splitSupplyIfSmallerThan
   -- * Unboxed API
   , freshId#
   , splitSupply#
@@ -132,9 +133,17 @@ freshId s = case freshId# s of
 
 -- | Split a supply into two supplies that will return disjoint identifiers
 splitSupply :: Supply -> (Supply, Supply)
-splitSupply s = case splitSupply# s of
-  (# l, r #) -> (l, r)
+splitSupply = splitSupplyIfSmallerThan minSplitSupplySize
 {-# INLINE splitSupply #-}
+
+-- | Like `splitSupply` but with a configurable minimum size at which to split a supply.
+-- If splitting supplies is more common than extracting ids, then it makes sense to
+-- lower the minimum threshold at which a supply could be split
+-- (The default used by `splitSupply` is 32, which is square root of the blockSize)
+splitSupplyIfSmallerThan :: Int -> Supply -> (Supply, Supply)
+splitSupplyIfSmallerThan splitSupplySize s = case splitSupply# splitSupplySize s of
+  (# l, r #) -> (l, r)
+{-# INLINE splitSupplyIfSmallerThan #-}
 
 -- | An unboxed version of freshId
 freshId# :: Supply -> (# Int#, Supply #)
@@ -144,10 +153,10 @@ freshId# (Supply i@(I# i#) j b)
 {-# INLINE freshId# #-}
 
 -- | An unboxed version of splitSupply
-splitSupply# :: Supply -> (# Supply, Supply #)
-splitSupply# (Supply i k b) = case splitBlock# b of
+splitSupply# :: Int -> Supply -> (# Supply, Supply #)
+splitSupply# splitSupplySize (Supply i k b) = case splitBlock# b of
     (# bl, br #)
-      | k - i >= minSplitSupplySize
+      | k - i >= splitSupplySize
       , j <- i + div (k - i) 2 ->
         (# Supply i j bl, Supply (j + 1) k br #)
       | Block x (l :- r :- _) <- bl
